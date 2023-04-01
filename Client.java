@@ -8,7 +8,8 @@ public class Client {
 		Boolean hasServer = false;
 		String serverType = ""; // Largest server type
 		int currID = 0;
-		int highestID;
+		int highestID = 0;
+		int core = 0;
 		try {
 			Socket s = new Socket("localhost", 50000);
 			System.out.println("Server connected.");
@@ -34,14 +35,25 @@ public class Client {
 					int serverNum = Integer.parseInt(buffer[1]);
 					dout.write(("OK\n").getBytes());
 					dout.flush();
+					// find server.
 					for (int i = 0; i < serverNum; i++) {
 						// find largest server type and largest index based on cores (serverType serverID status something core)
 						str = (String)in.readLine();
-						buffer = str.split(" ", 8); //todo
-						
+						buffer = str.split(" ", 6); //todo
+						// if buffer core > core than change serverType, set highest core, set highestID to 0	
+						if (Integer.parseInt(buffer[4]) > core) {
+							serverType = buffer[0];
+							core = Integer.parseInt(buffer[4]);
+							highestID = 0;
+						}
+						else if (buffer[0].equals(serverType)) {
+							highestID++;
+						}
 						// if two types have identical cores, aim for the first serverType.
 						System.out.println(str);
 					} 
+					System.out.println(highestID);
+					System.out.println(serverType);
 					
 					dout.write(("OK\n").getBytes());
 					dout.flush();
