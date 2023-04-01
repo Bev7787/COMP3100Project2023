@@ -3,27 +3,67 @@ import java.net.*;
 import java.util.Scanner;
 public class Client {
 	public static void main(String[] args) {
-		String jobID = "0";
-		String serverType = ""; // Largest server type
-		String jobInfo = ""; // Core Memory Disk
+		String jobID = ""; // ID
 		String username = System.getProperty("user.name");
+		Boolean hasServer = false;
+		String serverType = ""; // Largest server type
+		int currID = 0;
+		int highestID;
 		try {
 			Socket s = new Socket("localhost", 50000);
 			System.out.println("Server connected.");
 			DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 			BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream())); 
+			
 			Client.sendSimpleCommand(dout, in, "HELO");
 				 
 			Client.sendSimpleCommand(dout, in, "AUTH " + username);
 			
-			// Send REDY	
-			Client.getJob(dout, in, jobID, serverType, jobInfo);
 			
-			Client.getServer(dout, in, serverType);
-			System.out.println("here");
-			Client.sendSimpleCommand(dout, in, "SCHD " + jobID + " " + serverType + " 0");
+			jobID = Client.getJob(dout, in);
+			System.out.println("jobID "+ jobID);
 			
-			Client.sendSimpleCommand(dout, in, "OK");
+			
+			dout.write(("GETS All\n").getBytes());
+			dout.flush();
+					dout.write(("OK\n").getBytes());
+					dout.flush();
+					String str = (String)in.readLine();
+					// DATA nServer
+					String[] buffer = str.split(" ", 3);
+					int serverNum = Integer.parseInt(buffer[1]);
+					dout.write(("OK\n").getBytes());
+					dout.flush();
+					for (int i = 0; i < serverNum; i++) {
+						// find largest server type and largest index based on cores (serverType serverID status something core)
+						str = (String)in.readLine();
+						buffer = str.split(" ", 8); //todo
+						
+						// if two types have identical cores, aim for the first serverType.
+						System.out.println(str);
+					} 
+					
+					dout.write(("OK\n").getBytes());
+					dout.flush();
+				
+				
+				
+			/*while ((String)in.readLine() != "NONE") {
+				// Send REDY	
+				jobID = Client.getJob(dout, in);
+				System.out.println("jobID "+ jobID);
+				
+				if (!hasServer) {
+					dout.write(("GETS All\n").getBytes());
+					dout.flush();
+					String str = (String)in.readLine();	  
+					System.out.println("Server message: " + str); 
+				}
+				
+				//Client.sendSimpleCommand(dout, in, "SCHD " + jobID + " " + serverType + " 0");
+				
+				//Client.sendSimpleCommand(dout, in, "OK");
+			}*/
 			
 			Client.sendSimpleCommand(dout, in, "QUIT");
 			dout.close();
@@ -37,50 +77,24 @@ public class Client {
 			dout.write((command + "\n").getBytes());
 			dout.flush();
 			String str = (String)in.readLine();	  
-			System.out.println("Server message: " + str); 
 		}
 		catch (Exception e) {System.out.println(e);}
 	}
 	
-	private static void getJob(DataOutputStream dout, BufferedReader in, String jobID, String serverType, String jobInfo) {
+	private static String getJob(DataOutputStream dout, BufferedReader in) {
 		try {
 			dout.write(("REDY\n").getBytes());
 			dout.flush();
-			String str = (String)in.readLine();	  
-			str = str.substring(5);
-			System.out.println("Server message: " + str); 
-			int strip = str.indexOf(' ');
-			String tempStr = str.substring(strip + 1);
-			str = str.substring(strip + 1);
-			strip = str.indexOf(' ');
-			jobID = str.substring(0, strip + 1);
-			
-			tempStr = tempStr.substring(strip + 1);
-			strip = tempStr.indexOf(' ');
-			jobInfo = tempStr.substring(strip + 1);
-			System.out.println(jobID); 
-			dout.write(("OK\n").getBytes());
-			dout.flush();
-		}
-		catch (Exception e) {System.out.println(e);}
-	}
-	
-	private static void getServer(DataOutputStream dout, BufferedReader in, String serverType) {
-		try {
-			dout.write(("GETS All\n").getBytes());
-			dout.flush();
 			String str = (String)in.readLine();
-			dout.write(("OK\n").getBytes());
-			dout.flush();
-			str = (String)in.readLine();
-			while ((String)in.readLine() != null) {
-				str = (String)in.readLine();
-			}
-			int strip = str.indexOf(' ');
-			serverType = str.substring(0, strip + 1);
-			dout.write(("OK\n").getBytes());
-			dout.flush();
+			
+			System.out.println(str);
+			// Need to get core memory disk from JOBN message	  
+			String[] buffer = str.split(" ", 4);
+			System.out.println("Buffer: " + buffer[2]);
+			String jobID = buffer[2];
+			
+			return jobID;
 		}
-		catch (Exception e) {System.out.println(e);}
+		catch (Exception e) {System.out.println(e); return "";}
 	}
 }
