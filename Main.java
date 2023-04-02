@@ -46,9 +46,9 @@ public class Main {
 
 class Client {
 	private String username;
-	public String serverType = ""; // Largest server type
+	private String serverType = ""; // Largest server type
 	private int currID = 0;
-	public int highestID = 0;
+	private int highestID = 0;
 	private int core = 0;
 	private DataOutputStream dout;
 	private BufferedReader in;
@@ -140,8 +140,6 @@ class Client {
 					highestID++;
 				}
 			} 
-			System.out.println(serverType);
-			System.out.println(highestID);
 			sendOut("OK");
 			receiveIn();
 		}
