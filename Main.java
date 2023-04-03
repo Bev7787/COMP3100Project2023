@@ -9,7 +9,7 @@ public class Main {
 		boolean hasServer = false;
 		try {
 			Socket s = new Socket("localhost", 50000);
-			System.out.println("Server connected.");
+			//System.out.println("Server connected.");
 			DataOutputStream dout = new DataOutputStream(s.getOutputStream());
 			BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream())); 
 			Client c = new Client(dout, in, username);
