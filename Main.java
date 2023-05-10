@@ -3,10 +3,8 @@ import java.net.*;
 import java.util.Scanner;
 public class Main {
 	public static void main(String[] args) {
-		//String jobID = ""; // ID
 		String username = System.getProperty("user.name");
 		String redyResponse = "";
-		boolean hasServer = false;
 		try {
 			Socket s = new Socket("localhost", 50000);
 			//System.out.println("Server connected.");
@@ -19,17 +17,14 @@ public class Main {
 			while (!(c.prevMessage.equals("NONE"))) {
 				c.sendOut("REDY");
 				c.receiveIn();
-				// Store data for future reference.
+				// Store data for future reference. Split job data into core/memory/disk requirements
 				redyResponse = c.prevMessage;
-				
-				// Get server if largest server is not known.
-				if (!hasServer) {
-					c.getLargestServer();
-					
-					hasServer = true;
-				}
-				
 				if (c.getResponseHeader(redyResponse).equals("JOBN")) {
+					String[] job = redyResponse.split(" ", 5);
+					// Get the server to assign to. Pass in core/memory/disk
+					c.getFirstServer(job[4]);
+		
+
 					c.scheduleJob(redyResponse);
 					c.receiveIn();
 				}
@@ -49,7 +44,6 @@ class Client {
 	private String serverType = ""; // Largest server type
 	private int currID = 0;
 	private int highestID = 0;
-	private int core = 0;
 	private DataOutputStream dout;
 	private BufferedReader in;
 	// Last received message
@@ -67,6 +61,8 @@ class Client {
 		try {
 			dout.write((command + "\n").getBytes());
 			dout.flush();
+			
+			//System.out.println("OUT: " + command);
 		}
 		catch (Exception e) {}
 	}
@@ -75,6 +71,8 @@ class Client {
 	public void receiveIn() {
 		try {
 			prevMessage = (String)in.readLine();
+			
+			//System.out.println("IN: " + prevMessage);
 		}
 		catch (Exception e) {}
 	}
@@ -96,50 +94,34 @@ class Client {
 		return buffer[0];
 	}
 	
-	// scheduleJob schedules a job based on the jobID and the current server ID currID.
+	// scheduleJob schedules a job based on the jobID and the serverType.
 	public void scheduleJob(String message) {
 		try {
 			String[] buffer = message.split(" ", 4);
 			String jobID = buffer[2];
-			// if currID less than or equal to highestID, schedule then increment currID
-			// otherwise reset to 0 before scheduling.
-			if (currID <= highestID) {
-				sendOut("SCHD " + jobID + " " + serverType + " " + currID);
-				currID++;
-			}
-			else {
-				currID = 0;
-				sendOut("SCHD " + jobID + " " + serverType + " " + currID);
-				currID++;
-			}
+			sendOut("SCHD " + jobID + " " + serverType + " " + 0);
 		}
 		catch (Exception e) {}
 	}
 	
-	// getLargestServer handles messaging the server for server data and returning the largest server available.
-	public void getLargestServer() {
+	// getFirstServer handles messaging the server to find the first capable server using GETS Capable
+	// IN: core/memory/disk of job
+	public void getFirstServer(String cmd) {
 		try {
-			sendOut("GETS All");
+			sendOut("GETS Capable" + " " + cmd);
 			// DATA nServer
 			receiveIn();
 			String[] buffer = prevMessage.split(" ", 3);
 			int serverNum = Integer.parseInt(buffer[1]);
 			sendOut("OK");
-			// find largest server type and number of servers of the same type by looking for the largest number of cores.
-			for (int i = 0; i < serverNum; i++) {
-				receiveIn();
+			// read first serverType
+			receiveIn();
+			if (serverNum > 0) {
 				buffer = prevMessage.split(" ", 6); 
-				// if the current server type has more cores than the previous largest, match serverType and core to the current server type.
-				if (Integer.parseInt(buffer[4]) > core) {
-					serverType = buffer[0];
-					core = Integer.parseInt(buffer[4]);
-					highestID = 0;
-				}
-				// serverNum will only change for servers of the same type, even if two different types have identical number of cores.
-				else if (buffer[0].equals(serverType)) {
-					highestID++;
-				}
-			} 
+				serverType = buffer[0];
+				for (int i = 1; i < serverNum; i++) 
+					receiveIn();
+			}		
 			sendOut("OK");
 			receiveIn();
 		}
