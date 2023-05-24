@@ -14,6 +14,7 @@ public class Main {
 			
 			c.handshake();
 			
+			// Change from FF to BF
 			while (!(c.prevMessage.equals("NONE"))) {
 				c.sendOut("REDY");
 				c.receiveIn();
@@ -103,9 +104,16 @@ class Client {
 		}
 		catch (Exception e) {}
 	}
-	
+
+	// Find best fitting server using GETS Available. If no server exists, repeat with GETS Capable/RR to distribute.
+	// Skip servers with same fitness value and look for lowest.
 	// getFirstServer handles messaging the server to find the first capable server using GETS Capable
 	// IN: core/memory/disk of job
+	
+	// MODIFY TO BF by using GETS Capable? to identify servers, find server with smallest fitness value.
+	// Steps: On initial load, store maximum and current index of servers in 2D array. Load in job based on GETS Available. If none available,
+	// use GETS Capable to find first best capable server of a given type. Find server, increment id by 1 until max, in that case revert to 0. (VERY SLOW ON LARGE NUMBER OF SERVERS)
+	// use java dictionary with server type as key, value is tupule [current index, max size]
 	public void getFirstServer(String cmd) {
 		try {
 			sendOut("GETS Capable" + " " + cmd);
