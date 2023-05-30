@@ -16,7 +16,7 @@ public class Main {
 			
 			c.handshake();
 			
-			// Change from FF to BF
+			// FF Algorithm
 			while (!(c.prevMessage.equals("NONE"))) {
 				c.sendOut("REDY");
 				c.receiveIn();
@@ -24,10 +24,10 @@ public class Main {
 				redyResponse = c.prevMessage;
 				if (c.getResponseHeader(redyResponse).equals("JOBN")) {
 					String[] job = redyResponse.split(" ", 5);
-					// Get the server to assign to. Pass in core/memory/disk
+					// Get the first available server. If none are available, find the first capable server.
 					c.getFirstAvailServer(job[4]);
 					if (!(c.isAvailable)) {
-						System.out.println("job: " + redyResponse);
+						//System.out.println("job: " + redyResponse);
 						c.getFirstCapableServer(job[4]);
 					}
 		
@@ -69,7 +69,7 @@ class Client {
 			dout.write((command + "\n").getBytes());
 			dout.flush();
 			
-			System.out.println("OUT: " + command);
+			//System.out.println("OUT: " + command);
 		}
 		catch (Exception e) {}
 	}
@@ -79,7 +79,7 @@ class Client {
 		try {
 			prevMessage = (String)in.readLine();
 			
-			System.out.println("IN: " + prevMessage);
+			//System.out.println("IN: " + prevMessage);
 		}
 		catch (Exception e) {}
 	}
@@ -115,12 +115,7 @@ class Client {
 	// Skip servers with same fitness value and look for lowest.
 	// getFirstServer handles messaging the server to find the first capable server using GETS Capable
 	// IN: core/memory/disk of job
-	
-	// MODIFY TO BF by using GETS Avail to identify servers, find server with smallest fitness value. (todo: Determine whether GETS Avail sorts by best fitness or in server order.
-	// Steps: On initial load, store maximum and current index of servers in 2D array. Load in job based on GETS Available. If none available,
-	// use GETS Capable to find first best capable server of a given type. Find server, increment id by 1 until max, in that case revert to 0.
-	// use java HashMap with server type as key, value is tupule [current index, max size]
-	// todo: modify LRR find server algorithm to put total number of server and server type into key/value pairs. Use GETS available, and iff none, GETS capable with KVP.
+
 	public void getFirstCapableServer(String cmd) {
 		try {
 			isAvailable = true;
