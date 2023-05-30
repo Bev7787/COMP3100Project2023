@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.HashMap;
+
 public class Main {
 	public static void main(String[] args) {
 		String username = System.getProperty("user.name");
@@ -14,6 +16,7 @@ public class Main {
 			
 			c.handshake();
 			
+			// FF Algorithm
 			while (!(c.prevMessage.equals("NONE"))) {
 				c.sendOut("REDY");
 				c.receiveIn();
@@ -21,8 +24,12 @@ public class Main {
 				redyResponse = c.prevMessage;
 				if (c.getResponseHeader(redyResponse).equals("JOBN")) {
 					String[] job = redyResponse.split(" ", 5);
-					// Get the server to assign to. Pass in core/memory/disk
-					c.getFirstServer(job[4]);
+					// Get the first available server. If none are available, find the first capable server.
+					c.getFirstAvailServer(job[4]);
+					if (!(c.isAvailable)) {
+						//System.out.println("job: " + redyResponse);
+						c.getFirstCapableServer(job[4]);
+					}
 		
 
 					c.scheduleJob(redyResponse);
@@ -42,12 +49,12 @@ public class Main {
 class Client {
 	private String username;
 	private String serverType = ""; // Largest server type
-	private int currID = 0;
-	private int highestID = 0;
+	private String currID = "0";
 	private DataOutputStream dout;
 	private BufferedReader in;
 	// Last received message
 	public String prevMessage = "";
+	public boolean isAvailable = true; 
 	
 	// Constructor takes in output stream, reader and username
 	public Client(DataOutputStream x, BufferedReader y, String uname) {
@@ -99,30 +106,61 @@ class Client {
 		try {
 			String[] buffer = message.split(" ", 4);
 			String jobID = buffer[2];
-			sendOut("SCHD " + jobID + " " + serverType + " " + 0);
+			sendOut("SCHD " + jobID + " " + serverType + " " + currID);
 		}
 		catch (Exception e) {}
 	}
-	
+
+	// Find best fitting server using GETS Available. If no server exists, repeat with GETS Capable/RR to distribute.
+	// Skip servers with same fitness value and look for lowest.
 	// getFirstServer handles messaging the server to find the first capable server using GETS Capable
 	// IN: core/memory/disk of job
-	public void getFirstServer(String cmd) {
+
+	public void getFirstCapableServer(String cmd) {
 		try {
+			isAvailable = true;
 			sendOut("GETS Capable" + " " + cmd);
 			// DATA nServer
 			receiveIn();
 			String[] buffer = prevMessage.split(" ", 3);
 			int serverNum = Integer.parseInt(buffer[1]);
 			sendOut("OK");
-			// read first serverType
-			receiveIn();
 			if (serverNum > 0) {
+				// read first serverType
+				receiveIn();
 				buffer = prevMessage.split(" ", 6); 
 				serverType = buffer[0];
+				currID = buffer[1];
 				for (int i = 1; i < serverNum; i++) 
 					receiveIn();
-			}		
+			}	
 			sendOut("OK");
+			receiveIn();
+		}
+		catch (Exception e) {}
+	}
+	
+	public void getFirstAvailServer(String cmd) {
+		try {
+			sendOut("GETS Avail" + " " + cmd);
+			// DATA nServer
+			receiveIn();	
+			String[] buffer = prevMessage.split(" ", 3);
+			int serverNum = Integer.parseInt(buffer[1]);
+			sendOut("OK");
+			
+			if (serverNum > 0) {
+				// read first serverType
+				receiveIn();
+				buffer = prevMessage.split(" ", 6); 
+				serverType = buffer[0];
+				currID = buffer[1];
+				for (int i = 1; i < serverNum; i++) 
+					receiveIn();
+				sendOut("OK");
+			}	
+			else
+				isAvailable = false;			
 			receiveIn();
 		}
 		catch (Exception e) {}
